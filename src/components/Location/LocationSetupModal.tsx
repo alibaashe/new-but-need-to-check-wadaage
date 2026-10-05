@@ -145,7 +145,8 @@ export const LocationSetupModal: React.FC<LocationSetupModalProps> = ({
     onClose();
   };
 
-  const filteredPlaces = searchHargeisaPlaces(searchQuery);
+  const deferredSearchQuery = React.useDeferredValue(searchQuery);
+  const filteredPlaces = React.useMemo(() => searchHargeisaPlaces(deferredSearchQuery, undefined, 20), [deferredSearchQuery]);
 
   // Combined places (Hargeisa local + Google Suggestions)
   const combinedPlaces = React.useMemo(() => {

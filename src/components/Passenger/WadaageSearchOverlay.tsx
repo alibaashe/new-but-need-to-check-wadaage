@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import {
   Search,
   Map,
@@ -167,13 +167,16 @@ export const WadaageSearchOverlay: React.FC<WadaageSearchOverlayProps> = ({
     };
   }, [searchQuery]);
 
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   // Filter local Hargeisa database
   const filteredHargeisaPlaces = useMemo(() => {
     return searchHargeisaPlaces(
-      searchQuery,
-      selectedCategory !== 'All' ? selectedCategory : undefined
-    ).slice(0, 40);
-  }, [searchQuery, selectedCategory]);
+      deferredSearchQuery,
+      selectedCategory !== 'All' ? selectedCategory : undefined,
+      30
+    );
+  }, [deferredSearchQuery, selectedCategory]);
 
   const handleSelectPlace = (place: LocationNode) => {
     onSelectDestination(place);

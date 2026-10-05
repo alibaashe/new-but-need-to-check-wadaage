@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import {
   Building2,
   Bus,
@@ -101,10 +101,12 @@ export const SmartLocationAutocomplete: React.FC<SmartLocationAutocompleteProps>
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const deferredQuery = useDeferredValue(query);
+
   // Filter local Hargeisa registered places based on category and query
   const localResults = useMemo(() => {
-    return searchHargeisaPlaces(query, activeCategory !== 'All' ? activeCategory : undefined);
-  }, [query, activeCategory]);
+    return searchHargeisaPlaces(deferredQuery, activeCategory !== 'All' ? activeCategory : undefined, 30);
+  }, [deferredQuery, activeCategory]);
 
   // Real-time Google Maps Suggestions on first word typed (even 1-2 characters)
   useEffect(() => {
