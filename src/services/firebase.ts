@@ -363,7 +363,7 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
   let lastRidesHash = '';
 
   const maybeEmitRidesUpdate = (rides: RideRequest[]) => {
-    if (!rides || rides.length === 0) return;
+    if (!rides) return;
     // Fast lightweight signature hash to prevent redundant React re-renders when data hasn't changed
     const hash = rides.map((r) => `${r.id}_${r.status}_${r.assignedDriverId || ''}_${r.totalFare}_${r.liveTraveledKm || 0}_${r.liveMeterSeconds || 0}_${r.updatedAt || ''}`).join('|');
     if (hash === lastRidesHash) return;
@@ -377,18 +377,14 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
     unsubscribeFirestore = onSnapshot(
       ridesCol,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreRides: RideRequest[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (data && data.id) {
-              firestoreRides.push(data as RideRequest);
-            }
-          });
-          if (firestoreRides.length > 0) {
-            maybeEmitRidesUpdate(firestoreRides);
+        const firestoreRides: RideRequest[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data && data.id) {
+            firestoreRides.push(data as RideRequest);
           }
-        }
+        });
+        maybeEmitRidesUpdate(firestoreRides);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'rides');
@@ -402,7 +398,7 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
   fetch(getApiUrl('/api/rides/active'))
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
-      if (data && Array.isArray(data.rides) && data.rides.length > 0) {
+      if (data && Array.isArray(data.rides)) {
         maybeEmitRidesUpdate(data.rides as RideRequest[]);
       }
     })
@@ -415,7 +411,7 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
       sseSource.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
-          if (parsed && Array.isArray(parsed.rides) && parsed.rides.length > 0) {
+          if (parsed && Array.isArray(parsed.rides)) {
             maybeEmitRidesUpdate(parsed.rides as RideRequest[]);
           }
         } catch (_e) {}
@@ -428,7 +424,7 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
     fetch(getApiUrl('/api/rides/active'))
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && Array.isArray(data.rides) && data.rides.length > 0) {
+        if (data && Array.isArray(data.rides)) {
           maybeEmitRidesUpdate(data.rides as RideRequest[]);
         }
       })
@@ -511,7 +507,7 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
   let lastDriversHash = '';
 
   const maybeEmitDriversUpdate = (drivers: Driver[]) => {
-    if (!drivers || drivers.length === 0) return;
+    if (!drivers) return;
     const hash = drivers.map((d) => `${d.id}_${d.status}_${d.walletBalanceUsd ?? (d as any).wallet_balance_usd ?? 0}_${d.currentLocation?.lat || 0}_${d.currentLocation?.lng || 0}`).join('|');
     if (hash === lastDriversHash) return;
     lastDriversHash = hash;
@@ -524,23 +520,19 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
     unsubscribeFirestore = onSnapshot(
       driversCol,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreDrivers: Driver[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (data && data.id) {
-              const dLat = data.currentLocation?.lat ?? data.lat ?? 9.5600;
-              const dLng = data.currentLocation?.lng ?? data.lng ?? 44.0650;
-              firestoreDrivers.push({
-                ...(data as any),
-                currentLocation: { lat: Number(dLat), lng: Number(dLng) },
-              } as Driver);
-            }
-          });
-          if (firestoreDrivers.length > 0) {
-            maybeEmitDriversUpdate(firestoreDrivers);
+        const firestoreDrivers: Driver[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data && data.id) {
+            const dLat = data.currentLocation?.lat ?? data.lat ?? 9.5600;
+            const dLng = data.currentLocation?.lng ?? data.lng ?? 44.0650;
+            firestoreDrivers.push({
+              ...(data as any),
+              currentLocation: { lat: Number(dLat), lng: Number(dLng) },
+            } as Driver);
           }
-        }
+        });
+        maybeEmitDriversUpdate(firestoreDrivers);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'drivers');
@@ -614,7 +606,7 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
   fetch(getApiUrl('/api/db/drivers'))
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
-      if (data && Array.isArray(data.data) && data.data.length > 0) {
+      if (data && Array.isArray(data.data)) {
         maybeEmitDriversUpdate(mapDbDrivers(data.data));
       }
     })
@@ -625,7 +617,7 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
     fetch(getApiUrl('/api/db/drivers'))
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && Array.isArray(data.data) && data.data.length > 0) {
+        if (data && Array.isArray(data.data)) {
           maybeEmitDriversUpdate(mapDbDrivers(data.data));
         }
       })
