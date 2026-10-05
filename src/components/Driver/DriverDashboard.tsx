@@ -621,33 +621,36 @@ export const DriverDashboard: React.FC = () => {
               <div className="pt-2">
                 {currentRide.status === 'accepted' && (
                   <button
+                    type="button"
                     onClick={() => {
                       sounds.playButtonClick();
                       advanceDriverRideState();
                     }}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-full text-sm uppercase tracking-wider transition shadow-xl"
+                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-full text-sm uppercase tracking-wider transition shadow-xl active:scale-95 cursor-pointer touch-manipulation"
                   >
                     ARRIVED
                   </button>
                 )}
                 {currentRide.status === 'driver_arrived' && (
                   <button
+                    type="button"
                     onClick={() => {
                       sounds.playButtonClick();
                       advanceDriverRideState();
                     }}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-full text-sm uppercase tracking-wider transition shadow-xl"
+                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-full text-sm uppercase tracking-wider transition shadow-xl active:scale-95 cursor-pointer touch-manipulation"
                   >
                     START TRIP (VERIFIED)
                   </button>
                 )}
                 {currentRide.status === 'in_progress' && (
                   <button
+                    type="button"
                     onClick={() => {
                       sounds.playButtonClick();
                       advanceDriverRideState();
                     }}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black py-4 rounded-full text-sm uppercase tracking-wider transition shadow-xl"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black py-4 rounded-full text-sm uppercase tracking-wider transition shadow-xl active:scale-95 cursor-pointer touch-manipulation"
                   >
                     COMPLETE TRIP & COLLECT {formatCurrency(currentRide.totalFare)}
                   </button>

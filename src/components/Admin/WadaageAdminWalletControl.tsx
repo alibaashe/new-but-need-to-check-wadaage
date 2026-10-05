@@ -41,7 +41,7 @@ import { Driver, DriverWalletTransaction } from '../../types';
 import { EXCHANGE_RATE_USD_TO_SLSH } from '../../utils/geo';
 import { WadaageLogo } from '../Common/WadaageLogo';
 
-export const WadaageAdminWalletControl: React.FC = () => {
+export const WadaageAdminWalletControl: React.FC = React.memo(() => {
   const {
     driverWalletTransactions,
     verifyAndApproveDriverTopUp,
@@ -1721,4 +1721,5 @@ export const WadaageAdminWalletControl: React.FC = () => {
       )}
     </div>
   );
-};
+});
+WadaageAdminWalletControl.displayName = 'WadaageAdminWalletControl';

@@ -218,7 +218,7 @@ const loadPersistedUsers = (drivers: any[], driverApplications: any[]): UserReco
   }
 };
 
-export const UserManagementTable: React.FC = () => {
+export const UserManagementTable: React.FC = React.memo(() => {
   const {
     drivers,
     driverApplications,
@@ -952,4 +952,5 @@ export const UserManagementTable: React.FC = () => {
       )}
     </div>
   );
-};
+});
+UserManagementTable.displayName = 'UserManagementTable';

@@ -20,7 +20,7 @@ import { DriverApplication } from '../../types';
 import { deleteApplicationFromFirestore, saveDriverToFirestore } from '../../services/firebase';
 import { KeyRound, Lock } from 'lucide-react';
 
-export const DriverApprovalTable: React.FC = () => {
+export const DriverApprovalTable: React.FC = React.memo(() => {
   const { driverApplications, drivers, updateDriverApplicationStatus, deleteDriverApplication, updateUserPassword } = useRide();
   const [selectedApp, setSelectedApp] = useState<DriverApplication | null>(null);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
@@ -353,4 +353,5 @@ export const DriverApprovalTable: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+DriverApprovalTable.displayName = 'DriverApprovalTable';
