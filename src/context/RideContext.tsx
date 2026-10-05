@@ -109,8 +109,8 @@ function broadcastRideEvent(type: string, payload: any) {
       { type, payload, timestamp: Date.now() }
     );
 
-    // Relay immediately to backend server for cross-device / APK sync
-    if (payload && (payload.id || payload.pickup)) {
+    // Relay immediately to backend server for cross-device / APK sync (only for ride events, skip high-frequency driver location telemetry)
+    if (type !== 'DRIVER_LOCATION' && type !== 'DRIVER_LOCATION_UPDATE' && payload && (payload.id || payload.pickup)) {
       fetch(getApiUrl('/api/rides/sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
