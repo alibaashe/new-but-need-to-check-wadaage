@@ -49,7 +49,7 @@ import {
   snapToNearestLandmarkAnchor,
   calculateHaversineDistanceKm,
 } from '../utils/geo';
-import { secureStorage, sanitizeInput, signPayload, safeJsonParse } from '../utils/security';
+import { secureStorage, sanitizeInput, signPayload, safeJsonParse, safeAsyncSetItem } from '../utils/security';
 import {
   testFirebaseConnection,
   saveRideToFirestore,
@@ -104,13 +104,13 @@ function broadcastRideEvent(type: string, payload: any) {
       rideBroadcastChannel.postMessage({ type, payload, timestamp: Date.now() });
     }
     // Also save to localStorage to trigger storage events across separate windows / webviews
-    localStorage.setItem(
+    safeAsyncSetItem(
       'wadaage_last_broadcast_event',
-      JSON.stringify({ type, payload, timestamp: Date.now() })
+      { type, payload, timestamp: Date.now() }
     );
 
-    // Relay immediately to backend server for cross-device / APK sync
-    if (payload && (payload.id || payload.pickup)) {
+    // Relay immediately to backend server for cross-device / APK sync (only for ride events, skip high-frequency driver location telemetry)
+    if (type !== 'DRIVER_LOCATION' && type !== 'DRIVER_LOCATION_UPDATE' && payload && (payload.id || payload.pickup)) {
       fetch(getApiUrl('/api/rides/sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -547,7 +547,7 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wadaage_registered_drivers', JSON.stringify(drivers));
+      safeAsyncSetItem('wadaage_registered_drivers', drivers);
     } catch (e) {
       console.error(e);
     }
@@ -568,7 +568,7 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wadaage_driver_applications', JSON.stringify(driverApplications));
+      safeAsyncSetItem('wadaage_driver_applications', driverApplications);
     } catch (e) {
       console.error(e);
     }
@@ -632,8 +632,8 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wadaage_user_wallets_map', JSON.stringify(userWallets));
-      localStorage.setItem('wadaage_user_wallet_transactions', JSON.stringify(transactions));
+      safeAsyncSetItem('wadaage_user_wallets_map', userWallets);
+      safeAsyncSetItem('wadaage_user_wallet_transactions', transactions);
     } catch (e) {
       console.error(e);
     }
@@ -654,7 +654,7 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (allPlatformRides.length > 0) {
       try {
-        localStorage.setItem('wadaage_all_rides_history', JSON.stringify(allPlatformRides.slice(0, 150)));
+        safeAsyncSetItem('wadaage_all_rides_history', allPlatformRides.slice(0, 150));
       } catch (_e) {}
     }
   }, [allPlatformRides]);
@@ -1238,7 +1238,7 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wadaage_user_commuter_passes', JSON.stringify(userPasses));
+      safeAsyncSetItem('wadaage_user_commuter_passes', userPasses);
     } catch (e) {
       console.error(e);
     }
@@ -1267,8 +1267,8 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wadaage_intercity_bookings', JSON.stringify(intercityBookings));
-      localStorage.setItem('wadaage_intercity_trips', JSON.stringify(intercityTrips));
+      safeAsyncSetItem('wadaage_intercity_bookings', intercityBookings);
+      safeAsyncSetItem('wadaage_intercity_trips', intercityTrips);
     } catch (e) {
       console.error(e);
     }
@@ -1948,9 +1948,9 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wadaage_driver_wallets_map', JSON.stringify(driverWallets));
-      localStorage.setItem('wadaage_driver_wallet_balance', JSON.stringify(driverWalletBalanceUsd));
-      localStorage.setItem('wadaage_driver_wallet_transactions', JSON.stringify(driverWalletTransactions));
+      safeAsyncSetItem('wadaage_driver_wallets_map', driverWallets);
+      safeAsyncSetItem('wadaage_driver_wallet_balance', driverWalletBalanceUsd);
+      safeAsyncSetItem('wadaage_driver_wallet_transactions', driverWalletTransactions);
     } catch (e) {
       console.error(e);
     }
@@ -3731,7 +3731,7 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isBookingRideRef.current = true;
     setTimeout(() => {
       isBookingRideRef.current = false;
-    }, 2000);
+    }, 300);
 
     // If rider already has an active searching ride, cancel the previous one first to prevent duplicate ghost rides
     if (currentRide) {

@@ -22,6 +22,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut } from 'firebase/auth';
 import { Driver, PricingSettings, RideRequest, DriverWalletTransaction, AuthUser, ChatMessage, DriverApplication } from '../types';
+import { safeAsyncSetItem } from '../utils/security';
 import { getApiUrl } from './apiConfig';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -359,6 +360,16 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
   let sseSource: EventSource | null = null;
   let pollInterval: any = null;
   let unsubscribeFirestore: (() => void) | null = null;
+  let lastRidesHash = '';
+
+  const maybeEmitRidesUpdate = (rides: RideRequest[]) => {
+    if (!rides) return;
+    // Fast lightweight signature hash to prevent redundant React re-renders when data hasn't changed
+    const hash = rides.map((r) => `${r.id}_${r.status}_${r.assignedDriverId || ''}_${r.totalFare}_${r.liveTraveledKm || 0}_${r.liveMeterSeconds || 0}_${r.updatedAt || ''}`).join('|');
+    if (hash === lastRidesHash) return;
+    lastRidesHash = hash;
+    onUpdate(rides);
+  };
 
   // 1. Live Firestore onSnapshot Listener
   try {
@@ -366,18 +377,14 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
     unsubscribeFirestore = onSnapshot(
       ridesCol,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreRides: RideRequest[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (data && data.id) {
-              firestoreRides.push(data as RideRequest);
-            }
-          });
-          if (firestoreRides.length > 0) {
-            onUpdate(firestoreRides);
+        const firestoreRides: RideRequest[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data && data.id) {
+            firestoreRides.push(data as RideRequest);
           }
-        }
+        });
+        maybeEmitRidesUpdate(firestoreRides);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'rides');
@@ -391,8 +398,8 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
   fetch(getApiUrl('/api/rides/active'))
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
-      if (data && Array.isArray(data.rides) && data.rides.length > 0) {
-        onUpdate(data.rides as RideRequest[]);
+      if (data && Array.isArray(data.rides)) {
+        maybeEmitRidesUpdate(data.rides as RideRequest[]);
       }
     })
     .catch(() => {});
@@ -404,25 +411,25 @@ export function subscribeToLiveRides(onUpdate: (rides: RideRequest[]) => void): 
       sseSource.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
-          if (parsed && Array.isArray(parsed.rides) && parsed.rides.length > 0) {
-            onUpdate(parsed.rides as RideRequest[]);
+          if (parsed && Array.isArray(parsed.rides)) {
+            maybeEmitRidesUpdate(parsed.rides as RideRequest[]);
           }
         } catch (_e) {}
       };
     }
   } catch (_e) {}
 
-  // 4. Fallback polling
+  // 4. Background Fallback polling (8 seconds instead of 3 seconds)
   pollInterval = setInterval(() => {
     fetch(getApiUrl('/api/rides/active'))
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && Array.isArray(data.rides) && data.rides.length > 0) {
-          onUpdate(data.rides as RideRequest[]);
+        if (data && Array.isArray(data.rides)) {
+          maybeEmitRidesUpdate(data.rides as RideRequest[]);
         }
       })
       .catch(() => {});
-  }, 3000);
+  }, 8000);
 
   return () => {
     if (unsubscribeFirestore) unsubscribeFirestore();
@@ -497,6 +504,15 @@ export async function saveDriverToFirestore(driver: Driver): Promise<void> {
 export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () => void {
   let unsubscribeFirestore: (() => void) | null = null;
   let sseSource: EventSource | null = null;
+  let lastDriversHash = '';
+
+  const maybeEmitDriversUpdate = (drivers: Driver[]) => {
+    if (!drivers) return;
+    const hash = drivers.map((d) => `${d.id}_${d.status}_${d.walletBalanceUsd ?? (d as any).wallet_balance_usd ?? 0}_${d.currentLocation?.lat || 0}_${d.currentLocation?.lng || 0}`).join('|');
+    if (hash === lastDriversHash) return;
+    lastDriversHash = hash;
+    onUpdate(drivers);
+  };
 
   // 1. Live Firestore onSnapshot Listener for real-time driver lat/lng changes
   try {
@@ -504,23 +520,19 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
     unsubscribeFirestore = onSnapshot(
       driversCol,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreDrivers: Driver[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (data && data.id) {
-              const dLat = data.currentLocation?.lat ?? data.lat ?? 9.5600;
-              const dLng = data.currentLocation?.lng ?? data.lng ?? 44.0650;
-              firestoreDrivers.push({
-                ...(data as any),
-                currentLocation: { lat: Number(dLat), lng: Number(dLng) },
-              } as Driver);
-            }
-          });
-          if (firestoreDrivers.length > 0) {
-            onUpdate(firestoreDrivers);
+        const firestoreDrivers: Driver[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data && data.id) {
+            const dLat = data.currentLocation?.lat ?? data.lat ?? 9.5600;
+            const dLng = data.currentLocation?.lng ?? data.lng ?? 44.0650;
+            firestoreDrivers.push({
+              ...(data as any),
+              currentLocation: { lat: Number(dLat), lng: Number(dLng) },
+            } as Driver);
           }
-        }
+        });
+        maybeEmitDriversUpdate(firestoreDrivers);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'drivers');
@@ -561,7 +573,7 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
                 bc.postMessage(parsed);
                 bc.close();
               }
-              localStorage.setItem('wadaage_last_broadcast_event', JSON.stringify(parsed));
+              safeAsyncSetItem('wadaage_last_broadcast_event', parsed);
             } catch (_e) {}
           }
         } catch (_e) {}
@@ -594,22 +606,23 @@ export function subscribeToDrivers(onUpdate: (drivers: Driver[]) => void): () =>
   fetch(getApiUrl('/api/db/drivers'))
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
-      if (data && Array.isArray(data.data) && data.data.length > 0) {
-        onUpdate(mapDbDrivers(data.data));
+      if (data && Array.isArray(data.data)) {
+        maybeEmitDriversUpdate(mapDbDrivers(data.data));
       }
     })
     .catch(() => {});
 
+  // 4. Background Fallback polling (10 seconds instead of 5 seconds)
   const interval = setInterval(() => {
     fetch(getApiUrl('/api/db/drivers'))
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && Array.isArray(data.data) && data.data.length > 0) {
-          onUpdate(mapDbDrivers(data.data));
+        if (data && Array.isArray(data.data)) {
+          maybeEmitDriversUpdate(mapDbDrivers(data.data));
         }
       })
       .catch(() => {});
-  }, 5000);
+  }, 10000);
 
   return () => {
     if (unsubscribeFirestore) unsubscribeFirestore();

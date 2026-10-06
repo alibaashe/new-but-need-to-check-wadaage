@@ -299,6 +299,39 @@ export function safeJsonParse<T = any>(raw: any, fallback: T): T {
   }
 }
 
+const pendingStorageWrites = new Map<string, any>();
+let isStorageWriteScheduled = false;
+
+function flushPendingStorageWrites() {
+  isStorageWriteScheduled = false;
+  pendingStorageWrites.forEach((value, key) => {
+    try {
+      if (typeof value === 'string') {
+        localStorage.setItem(key, value);
+      } else {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    } catch (_e) {}
+  });
+  pendingStorageWrites.clear();
+}
+
+/**
+ * Non-blocking asynchronous LocalStorage writer.
+ * Defers JSON serialization & disk I/O off the critical UI thread to prevent touch jank.
+ */
+export function safeAsyncSetItem(key: string, value: any): void {
+  pendingStorageWrites.set(key, value);
+  if (!isStorageWriteScheduled) {
+    isStorageWriteScheduled = true;
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(flushPendingStorageWrites, { timeout: 300 });
+    } else {
+      setTimeout(flushPendingStorageWrites, 30);
+    }
+  }
+}
+
 export const secureStorage = {
   /**
    * Store data in localStorage with synchronous safe fallback & async AES encryption
@@ -308,7 +341,7 @@ export const secureStorage = {
       const serialized = typeof value === 'string' ? value : JSON.stringify(value);
       // Synchronous base64 obfuscation for instantaneous synchronous retrieval
       const obfuscated = 'wsec_v1_' + btoa(unescape(encodeURIComponent(serialized)));
-      localStorage.setItem(key, obfuscated);
+      safeAsyncSetItem(key, obfuscated);
     } catch (e) {
       console.warn('secureStorage setItem error:', e);
     }

@@ -340,12 +340,13 @@ export const GoogleInteractiveMap: React.FC<GoogleInteractiveMapProps> = ({
     zoom
   );
 
+  const tileStartX = Math.max(0, minTile.x - 1);
+  const tileEndX = maxTile.x + 1;
+  const tileStartY = Math.max(0, maxTile.y - 1);
+  const tileEndY = minTile.y + 1;
+
   const tiles = useMemo(() => {
     const list: Array<{ x: number; y: number; left: number; top: number; key: string; url: string; fallbackUrl: string }> = [];
-    const tileStartX = Math.max(0, minTile.x - 2);
-    const tileEndX = maxTile.x + 2;
-    const tileStartY = Math.max(0, maxTile.y - 2);
-    const tileEndY = minTile.y + 2;
 
     for (let tx = tileStartX; tx <= tileEndX; tx++) {
       for (let ty = tileStartY; ty <= tileEndY; ty++) {
@@ -377,7 +378,7 @@ export const GoogleInteractiveMap: React.FC<GoogleInteractiveMapProps> = ({
       }
     }
     return list;
-  }, [zoom, minTile, maxTile, centerPixel, dimensions, mapLayer]);
+  }, [zoom, tileStartX, tileEndX, tileStartY, tileEndY, centerPixel.x, centerPixel.y, dimensions.width, dimensions.height, mapLayer]);
 
   // Coordinate-to-Screen-Pixel converter
   const toScreenCoord = useCallback(

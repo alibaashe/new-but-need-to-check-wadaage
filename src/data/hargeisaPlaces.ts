@@ -42,78 +42,79 @@ export const HARGEISA_CATEGORIES: CategoryMeta[] = [
   { id: 'district', label: 'Xaafadaha (Districts)', somaliLabel: 'Xaafadaha', icon: 'Home', count: HARGEISA_PLACES.filter(p => p.category.includes('Xaafadaha')).length },
 ];
 
-export function searchHargeisaPlaces(query: string, categoryFilter?: string): HargeisaPlace[] {
+export function searchHargeisaPlaces(query: string, categoryFilter?: string, maxResults: number = 40): HargeisaPlace[] {
   const q = (query || '').trim().toLowerCase();
   const cat = (categoryFilter || '').trim().toLowerCase();
+  const isAllCategory = !cat || cat === 'all' || cat === 'dhammaan' || cat === '⭐ all places';
 
-  return HARGEISA_PLACES.filter((place) => {
-    // Strict & Smart Category Filtering
-    if (cat && cat !== 'all' && cat !== 'dhammaan' && cat !== '⭐ all places') {
+  const results: HargeisaPlace[] = [];
+
+  for (let i = 0; i < HARGEISA_PLACES.length; i++) {
+    const place = HARGEISA_PLACES[i];
+
+    // Category Filter Check
+    if (!isAllCategory) {
       const pCat = (place.category || '').toLowerCase();
       const pSub = (place.subCategory || '').toLowerCase();
       const pSomali = (place.somaliCategory || '').toLowerCase();
 
-      // Category matching rules
+      let catMatch = false;
       if (cat.includes('hospital') || cat.includes('health') || cat.includes('cusbitaal')) {
-        if (!pCat.includes('hospital') && !pSub.includes('hospital') && !pSomali.includes('cusbitaal')) return false;
+        catMatch = pCat.includes('hospital') || pSub.includes('hospital') || pSomali.includes('cusbitaal');
+      } else if (cat.includes('universit') || cat.includes('jaamacad')) {
+        catMatch = pCat.includes('universit') || pSub.includes('university') || pSomali.includes('jaamacad');
+      } else if (cat.includes('school') || cat.includes('dugsi') || cat.includes('academ')) {
+        catMatch = pCat.includes('school') || pSub.includes('school') || pSomali.includes('dugsi');
+      } else if (cat.includes('mosque') || cat.includes('masjid')) {
+        catMatch = pCat.includes('mosque') || pSub.includes('worship') || pSomali.includes('masjid');
+      } else if (cat.includes('market') || cat.includes('mall') || cat.includes('supermarket') || cat.includes('suuq')) {
+        catMatch = pCat.includes('market') || pCat.includes('mall') || pCat.includes('supermarket') || pSub.includes('mall') || pSomali.includes('suuq');
+      } else if (cat.includes('fuel') || cat.includes('petrol') || cat.includes('shidaal') || cat.includes('kaalm')) {
+        catMatch = pCat.includes('fuel') || pSub.includes('fuel') || pSomali.includes('shidaal');
+      } else if (cat.includes('transport') || cat.includes('transit') || cat.includes('terminal') || cat.includes('airport') || cat.includes('istaan')) {
+        catMatch = pCat.includes('transport') || pSub.includes('transit') || pSomali.includes('istaan');
+      } else if (cat.includes('ngo') || cat.includes('agenc') || cat.includes('caalami')) {
+        catMatch = pCat.includes('ngo') || pSub.includes('ngo') || pSomali.includes('caalami');
+      } else if (cat.includes('road') || cat.includes('corridor') || cat.includes('wadd') || cat.includes('joyad')) {
+        catMatch = pCat.includes('road') || pSub.includes('highway') || pSomali.includes('wadd');
+      } else if (cat.includes('restaurant') || cat.includes('cafe') || cat.includes('dining') || cat.includes('maqaayad')) {
+        catMatch = pCat.includes('restaurant') || pSub.includes('restaurant') || pSomali.includes('maqaayad');
+      } else if (cat.includes('hotel') || cat.includes('huteel') || cat.includes('lodg')) {
+        catMatch = pCat.includes('hotel') || pSub.includes('hotel') || pSomali.includes('huteel');
+      } else if (cat.includes('bank') || cat.includes('bangi') || cat.includes('zaad') || cat.includes('taaj') || cat.includes('finance')) {
+        catMatch = pCat.includes('bank') || pSub.includes('bank') || pSomali.includes('bangi');
+      } else if (cat.includes('corporate') || cat.includes('utilit') || cat.includes('shirkad') || cat.includes('somtel') || cat.includes('sompower')) {
+        catMatch = pCat.includes('corporate') || pSub.includes('corporate') || pSub.includes('utility') || pSomali.includes('shirkad');
+      } else if (cat.includes('gov') || cat.includes('dowladd') || cat.includes('civic') || cat.includes('municip')) {
+        catMatch = pCat.includes('government') || pSub.includes('government') || pSomali.includes('dowladd');
+      } else if (cat.includes('xaafad') || cat.includes('district') || cat.includes('neighbor') || cat.includes('degmo')) {
+        catMatch = pCat.includes('xaafad') || pCat.includes('district') || pSub.includes('neighborhood') || pSomali.includes('xaafad');
+      } else {
+        catMatch = pCat.includes(cat) || pSomali.includes(cat);
       }
-      else if (cat.includes('universit') || cat.includes('jaamacad')) {
-        if (!pCat.includes('universit') && !pSub.includes('university') && !pSomali.includes('jaamacad')) return false;
-      }
-      else if (cat.includes('school') || cat.includes('dugsi') || cat.includes('academ')) {
-        if (!pCat.includes('school') && !pSub.includes('school') && !pSomali.includes('dugsi')) return false;
-      }
-      else if (cat.includes('mosque') || cat.includes('masjid')) {
-        if (!pCat.includes('mosque') && !pSub.includes('worship') && !pSomali.includes('masjid')) return false;
-      }
-      else if (cat.includes('market') || cat.includes('mall') || cat.includes('supermarket') || cat.includes('suuq')) {
-        if (!pCat.includes('market') && !pCat.includes('mall') && !pCat.includes('supermarket') && !pSub.includes('mall') && !pSomali.includes('suuq')) return false;
-      }
-      else if (cat.includes('fuel') || cat.includes('petrol') || cat.includes('shidaal') || cat.includes('kaalm')) {
-        if (!pCat.includes('fuel') && !pSub.includes('fuel') && !pSomali.includes('shidaal')) return false;
-      }
-      else if (cat.includes('transport') || cat.includes('transit') || cat.includes('terminal') || cat.includes('airport') || cat.includes('istaan')) {
-        if (!pCat.includes('transport') && !pSub.includes('transit') && !pSomali.includes('istaan')) return false;
-      }
-      else if (cat.includes('ngo') || cat.includes('agenc') || cat.includes('caalami')) {
-        if (!pCat.includes('ngo') && !pSub.includes('ngo') && !pSomali.includes('caalami')) return false;
-      }
-      else if (cat.includes('road') || cat.includes('corridor') || cat.includes('wadd') || cat.includes('joyad')) {
-        if (!pCat.includes('road') && !pSub.includes('highway') && !pSomali.includes('wadd')) return false;
-      }
-      else if (cat.includes('restaurant') || cat.includes('cafe') || cat.includes('dining') || cat.includes('maqaayad')) {
-        if (!pCat.includes('restaurant') && !pSub.includes('restaurant') && !pSomali.includes('maqaayad')) return false;
-      }
-      else if (cat.includes('hotel') || cat.includes('huteel') || cat.includes('lodg')) {
-        if (!pCat.includes('hotel') && !pSub.includes('hotel') && !pSomali.includes('huteel')) return false;
-      }
-      else if (cat.includes('bank') || cat.includes('bangi') || cat.includes('zaad') || cat.includes('taaj') || cat.includes('finance')) {
-        if (!pCat.includes('bank') && !pSub.includes('bank') && !pSomali.includes('bangi')) return false;
-      }
-      else if (cat.includes('corporate') || cat.includes('utilit') || cat.includes('shirkad') || cat.includes('somtel') || cat.includes('sompower')) {
-        if (!pCat.includes('corporate') && !pSub.includes('corporate') && !pSub.includes('utility') && !pSomali.includes('shirkad')) return false;
-      }
-      else if (cat.includes('gov') || cat.includes('dowladd') || cat.includes('civic') || cat.includes('municip')) {
-        if (!pCat.includes('government') && !pSub.includes('government') && !pSomali.includes('dowladd')) return false;
-      }
-      else if (cat.includes('xaafad') || cat.includes('district') || cat.includes('neighbor') || cat.includes('degmo')) {
-        if (!pCat.includes('xaafad') && !pCat.includes('district') && !pSub.includes('neighborhood') && !pSomali.includes('xaafad')) return false;
-      }
-      else {
-        if (!pCat.includes(cat) && !pSomali.includes(cat)) return false;
-      }
+
+      if (!catMatch) continue;
     }
 
-    // Query matching
-    if (!q) return true;
+    // Query Match Check
+    if (!q) {
+      results.push(place);
+      if (results.length >= maxResults) break;
+      continue;
+    }
 
-    if (place.name.toLowerCase().includes(q)) return true;
-    if (place.address.toLowerCase().includes(q)) return true;
-    if (place.district && place.district.toLowerCase().includes(q)) return true;
-    if (place.category && place.category.toLowerCase().includes(q)) return true;
-    if (place.somaliCategory && place.somaliCategory.toLowerCase().includes(q)) return true;
-    if (place.searchTerms && place.searchTerms.some(t => t.includes(q))) return true;
+    if (
+      place.name.toLowerCase().includes(q) ||
+      place.address.toLowerCase().includes(q) ||
+      (place.district && place.district.toLowerCase().includes(q)) ||
+      (place.category && place.category.toLowerCase().includes(q)) ||
+      (place.somaliCategory && place.somaliCategory.toLowerCase().includes(q)) ||
+      (place.searchTerms && place.searchTerms.some((t) => t.includes(q)))
+    ) {
+      results.push(place);
+      if (results.length >= maxResults) break;
+    }
+  }
 
-    return false;
-  });
+  return results;
 }
